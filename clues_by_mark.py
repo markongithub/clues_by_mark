@@ -336,10 +336,16 @@ def make_puzzle49() -> Puzzle:
             "Freya": CRIMINAL,
             "Xia": INNOCENT,
             "Vicky": CRIMINAL,
-            # "Andre": CRIMINAL,
-            # "Chuck": INNOCENT,
-            # "Janet": INNOCENT,
-            # "Isaac": INNOCENT,
+            "Nicole": CRIMINAL,
+            "Oscar": CRIMINAL,
+            "Laura": CRIMINAL,
+            "Donna": INNOCENT,
+            "Will": CRIMINAL,
+            "Zach": INNOCENT,
+            "Isaac": CRIMINAL,
+            "Uma": CRIMINAL,
+            "Ruth": INNOCENT,
+            "Paul": CRIMINAL,
         },
     )
     puzzle49.bug_hypothesis = {
@@ -371,7 +377,7 @@ def make_puzzle49() -> Puzzle:
         for suspect in puzzle49.suspects:
             if suspect != "Andre":
                 if count_innocent(puzzle49.get_neighbors(suspect), hypothesis) == 0:
-                    print(f"{suspect} has no innocent neighbors")
+                    # print(f"{suspect} has no innocent neighbors")
                     success = False
         return success
 
@@ -400,18 +406,40 @@ def make_puzzle49() -> Puzzle:
         == 1,
     )
     puzzle49.add_rule(
+        "Xia",
+        lambda hypothesis: count_innocent(
+            ["Donna", "Isaac", "Oscar", "Uma", "Zach"], hypothesis
+        )
+        == 2,
+    )
+    puzzle49.add_rule(
         "Vicky",
         lambda hypothesis: count_criminal(puzzle49.get_neighbors("Isaac"), hypothesis)
         > count_criminal(puzzle49.get_neighbors("Xia"), hypothesis),
     )
-    print(
-        f"under the bug hypothesis Isaac has {count_criminal(puzzle49.get_neighbors('Isaac'), puzzle49.bug_hypothesis)} criminal neighbors"
+    puzzle49.add_rule(
+        "Oscar",
+        lambda hypothesis: count_criminal(puzzle49.get_neighbors("Will"), hypothesis)
+        == count_criminal(puzzle49.get_neighbors("Donna"), hypothesis),
     )
-    for name, rule in puzzle49.rules.items():
-        if rule(puzzle49.bug_hypothesis):
-            print(f"bug_hypothesis is valid for {name}")
-        else:
-            print(f"bug_hypothesis is not valid for {name}")
+    puzzle49.add_rule(
+        "Laura",
+        lambda hypothesis: count_innocent(puzzle49.get_neighbors("Zach"), hypothesis)
+        == count_innocent(puzzle49.get_neighbors("Freya"), hypothesis),
+    )
+    puzzle49.add_rule(
+        "Donna",
+        lambda hypothesis: count_innocent(puzzle49.get_neighbors("Vicky"), hypothesis)
+        % 2
+        == 1,
+    )
+    puzzle49.add_rule(
+        "Ruth",
+        lambda hypothesis: count_criminal(puzzle49.get_neighbors("Bruce"), hypothesis)
+        % 2
+        == 1,
+    )
+
     return puzzle49
 
 
