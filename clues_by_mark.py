@@ -29,6 +29,37 @@ class Puzzle:
     def add_rule(self, rule_name: str, rule: Callable[[dict[str, bool]], bool]) -> None:
         self.rules[rule_name] = rule
 
+    def equal_criminal_neighbors(
+        self, rule_name: str, suspect1: str, suspect2: str
+    ) -> None:
+        def rule(hypothesis: dict[str, bool]) -> bool:
+            return count_criminal(
+                self.get_neighbors(suspect1), hypothesis
+            ) == count_criminal(self.get_neighbors(suspect2), hypothesis)
+
+        self.add_rule(rule_name, rule)
+
+    def equal_innocent_neighbors(
+        self, rule_name: str, suspect1: str, suspect2: str
+    ) -> None:
+        def rule(hypothesis: dict[str, bool]) -> bool:
+            return count_innocent(
+                self.get_neighbors(suspect1), hypothesis
+            ) == count_innocent(self.get_neighbors(suspect2), hypothesis)
+
+        self.add_rule(rule_name, rule)
+
+    def criminals_connected(self, rule_name: str, suspects: list[str]) -> None:
+        def rule(hypothesis: dict[str, bool]) -> bool:
+            criminals = [
+                suspect for suspect in suspects if hypothesis.get(suspect) == CRIMINAL
+            ]
+            indices = [suspects.index(suspect) for suspect in criminals]
+            index_distance = max(indices) - min(indices)
+            return index_distance in [len(criminals) - 1, 4 * (len(criminals) - 1)]
+
+        self.add_rule(rule_name, rule)
+
     def solve(self) -> None:
         fewer_suspects = set.union(
             *[relevant_suspects(rule) for rule in self.rules.values()]
@@ -365,11 +396,6 @@ def make_puzzle49() -> Puzzle:
         "Zach": CRIMINAL,
     } | puzzle49.known
     print(f"Chuck's neighbors: {puzzle49.get_neighbors('Chuck')}")
-    puzzle49.add_rule(
-        "Sarah1",
-        lambda hypothesis: count_innocent(puzzle49.get_neighbors("Andre"), hypothesis)
-        == 0,
-    )
 
     def sarah2(hypothesis: dict[str, bool]) -> bool:
         # This is terrible. We'd like to terminate after finding a failure but that breaks how relevant_suspects works. So we need to reengineer relevant_suspects to make this more efficient.
@@ -417,15 +443,15 @@ def make_puzzle49() -> Puzzle:
         lambda hypothesis: count_criminal(puzzle49.get_neighbors("Isaac"), hypothesis)
         > count_criminal(puzzle49.get_neighbors("Xia"), hypothesis),
     )
-    puzzle49.add_rule(
+    puzzle49.equal_criminal_neighbors(
         "Oscar",
-        lambda hypothesis: count_criminal(puzzle49.get_neighbors("Will"), hypothesis)
-        == count_criminal(puzzle49.get_neighbors("Donna"), hypothesis),
+        "Will",
+        "Donna",
     )
-    puzzle49.add_rule(
+    puzzle49.equal_innocent_neighbors(
         "Laura",
-        lambda hypothesis: count_innocent(puzzle49.get_neighbors("Zach"), hypothesis)
-        == count_innocent(puzzle49.get_neighbors("Freya"), hypothesis),
+        "Zach",
+        "Freya",
     )
     puzzle49.add_rule(
         "Donna",
@@ -440,6 +466,14 @@ def make_puzzle49() -> Puzzle:
         == 1,
     )
 
+    puzzle49.add_rule(
+        "Janet1",
+        lambda hypothesis: count_criminal(
+            ["Hank", "Nicole", "Sarah", "Xia"], hypothesis
+        )
+        == 2,
+    )
+    puzzle49.criminals_connected("Janet2", ["Hank", "Nicole", "Sarah", "Xia"])
     return puzzle49
 
 
