@@ -26,39 +26,50 @@ class Puzzle:
     def get_neighbors(self, suspect: str) -> list[str]:
         return self.neighbors_cache[suspect]
 
-    def add_rule(self, rule_name: str, rule: Callable[[dict[str, bool]], bool]) -> None:
+    def add_rule(
+        self, rule_name: str, guilt: bool, rule: Callable[[dict[str, bool]], bool]
+    ) -> None:
+        if guilt is not None:
+            self.known[rule_name] = guilt
         self.rules[rule_name] = rule
 
     def equal_criminal_neighbors(
-        self, rule_name: str, suspect1: str, suspect2: str
+        self, rule_name: str, guilt: bool, suspect1: str, suspect2: str
     ) -> None:
         def rule(hypothesis: dict[str, bool]) -> bool:
             return count_criminal(
                 self.get_neighbors(suspect1), hypothesis
             ) == count_criminal(self.get_neighbors(suspect2), hypothesis)
 
-        self.add_rule(rule_name, rule)
+        self.add_rule(rule_name, guilt, rule)
 
     def equal_innocent_neighbors(
-        self, rule_name: str, suspect1: str, suspect2: str
+        self, rule_name: str, guilt: bool, suspect1: str, suspect2: str
     ) -> None:
         def rule(hypothesis: dict[str, bool]) -> bool:
             return count_innocent(
                 self.get_neighbors(suspect1), hypothesis
             ) == count_innocent(self.get_neighbors(suspect2), hypothesis)
 
-        self.add_rule(rule_name, rule)
+        self.add_rule(rule_name, guilt, rule)
 
-    def criminals_connected(self, rule_name: str, suspects: list[str]) -> None:
+    def criminals_connected(
+        self, rule_name: str, guilt: bool, suspects: list[str]
+    ) -> None:
+        print(f"criminals_connected: {rule_name} {guilt} {suspects}")
+
         def rule(hypothesis: dict[str, bool]) -> bool:
             criminals = [
                 suspect for suspect in suspects if hypothesis.get(suspect) == CRIMINAL
             ]
+            if len(criminals) == 0:
+                # I feel like this shouldn't happen but maybe?
+                return True
             indices = [suspects.index(suspect) for suspect in criminals]
             index_distance = max(indices) - min(indices)
             return index_distance in [len(criminals) - 1, 4 * (len(criminals) - 1)]
 
-        self.add_rule(rule_name, rule)
+        self.add_rule(rule_name, guilt, rule)
 
     def solve(self) -> None:
         fewer_suspects = set.union(
@@ -360,23 +371,127 @@ def make_puzzle49() -> Puzzle:
             "Xia",
             "Zach",
         ],
+        known={},
+    )
+
+    def sarah2(hypothesis: dict[str, bool]) -> bool:
+        # This is terrible. We'd like to terminate after finding a failure but that breaks how relevant_suspects works. So we need to reengineer relevant_suspects to make this more efficient.
+        success = True
+        for suspect in puzzle49.suspects:
+            if suspect != "Andre":
+                if count_innocent(puzzle49.get_neighbors(suspect), hypothesis) == 0:
+                    # print(f"{suspect} has no innocent neighbors")
+                    success = False
+        return success
+
+    puzzle49.add_rule(
+        "Sarah",
+        INNOCENT,
+        sarah2,
+    )
+    puzzle49.add_rule(
+        "Bruce",
+        CRIMINAL,
+        lambda hypothesis: (
+            count_innocent(puzzle49.get_neighbors("Sarah"), hypothesis) == 3
+        )
+        and (count_innocent(["Ruth", "Uma"], hypothesis) == 1),
+    )
+    puzzle49.add_rule(
+        "Erwin",
+        CRIMINAL,
+        lambda hypothesis: (
+            count_innocent(puzzle49.get_neighbors("Will"), hypothesis) == 3
+        )
+        and (count_innocent(["Sarah", "Xia"], hypothesis) == 2),
+    )
+    puzzle49.add_rule(
+        "Freya",
+        CRIMINAL,
+        lambda hypothesis: count_criminal(puzzle49.get_neighbors("Isaac"), hypothesis)
+        % 2
+        == 1,
+    )
+    puzzle49.add_rule(
+        "Xia",
+        INNOCENT,
+        lambda hypothesis: count_innocent(
+            ["Donna", "Isaac", "Oscar", "Uma", "Zach"], hypothesis
+        )
+        == 2,
+    )
+    puzzle49.add_rule(
+        "Vicky",
+        CRIMINAL,
+        lambda hypothesis: count_criminal(puzzle49.get_neighbors("Isaac"), hypothesis)
+        > count_criminal(puzzle49.get_neighbors("Xia"), hypothesis),
+    )
+    puzzle49.known["Nicole"] = CRIMINAL
+    puzzle49.equal_criminal_neighbors(
+        "Oscar",
+        CRIMINAL,
+        "Will",
+        "Donna",
+    )
+    puzzle49.equal_innocent_neighbors(
+        "Laura",
+        CRIMINAL,
+        "Zach",
+        "Freya",
+    )
+    puzzle49.add_rule(
+        "Donna",
+        INNOCENT,
+        lambda hypothesis: count_innocent(puzzle49.get_neighbors("Vicky"), hypothesis)
+        % 2
+        == 1,
+    )
+    # puzzle49.add_rule(
+    #     "Ruth",
+    #     INNOCENT,
+    #     lambda hypothesis: count_criminal(puzzle49.get_neighbors("Bruce"), hypothesis)
+    #     % 2
+    #     == 1,
+    # )
+
+    # puzzle49.add_rule(
+    #     "Janet",
+    #     CRIMINAL,
+    #     lambda hypothesis: count_criminal(
+    #         ["Hank", "Nicole", "Sarah", "Xia"], hypothesis
+    #     )
+    #     == 2,
+    # )
+    # puzzle49.criminals_connected("Janet2", None, ["Hank", "Nicole", "Sarah", "Xia"])
+    return puzzle49
+
+
+def make_puzzle48() -> Puzzle:
+    puzzle48 = Puzzle(
+        suspects=[
+            "Amy",
+            "Betty",
+            "Chris",
+            "Flora",
+            "Gabe" "Hilda",
+            "Isaac",
+            "Karen",
+            "Luigi",
+            "Mary" "Nick",
+            "Ollie",
+            "Paula",
+            "Ryan",
+            "Stella",
+            "Uma",
+            "Vince",
+            "Wanda",
+            "Xavi",
+            "Ziad",
+        ],
         known={
-            "Sarah": INNOCENT,
-            "Bruce": CRIMINAL,
-            "Erwin": CRIMINAL,
-            "Freya": CRIMINAL,
-            "Xia": INNOCENT,
-            "Vicky": CRIMINAL,
-            "Nicole": CRIMINAL,
-            "Oscar": CRIMINAL,
-            "Laura": CRIMINAL,
-            "Donna": INNOCENT,
-            "Will": CRIMINAL,
-            "Zach": INNOCENT,
-            "Isaac": CRIMINAL,
-            "Uma": CRIMINAL,
-            "Ruth": INNOCENT,
-            "Paul": CRIMINAL,
+            "Uma": INNOCENT,
+            "Paula": CRIMINAL,
+            "Vince": CRIMINAL,
         },
     )
     puzzle49.bug_hypothesis = {
@@ -411,70 +526,6 @@ def make_puzzle49() -> Puzzle:
         "Sarah2",
         sarah2,
     )
-    puzzle49.add_rule(
-        "Bruce",
-        lambda hypothesis: (
-            count_innocent(puzzle49.get_neighbors("Sarah"), hypothesis) == 3
-        )
-        and (count_innocent(["Ruth", "Uma"], hypothesis) == 1),
-    )
-    puzzle49.add_rule(
-        "Erwin",
-        lambda hypothesis: (
-            count_innocent(puzzle49.get_neighbors("Will"), hypothesis) == 3
-        )
-        and (count_innocent(["Sarah", "Xia"], hypothesis) == 2),
-    )
-    puzzle49.add_rule(
-        "Freya",
-        lambda hypothesis: count_criminal(puzzle49.get_neighbors("Isaac"), hypothesis)
-        % 2
-        == 1,
-    )
-    puzzle49.add_rule(
-        "Xia",
-        lambda hypothesis: count_innocent(
-            ["Donna", "Isaac", "Oscar", "Uma", "Zach"], hypothesis
-        )
-        == 2,
-    )
-    puzzle49.add_rule(
-        "Vicky",
-        lambda hypothesis: count_criminal(puzzle49.get_neighbors("Isaac"), hypothesis)
-        > count_criminal(puzzle49.get_neighbors("Xia"), hypothesis),
-    )
-    puzzle49.equal_criminal_neighbors(
-        "Oscar",
-        "Will",
-        "Donna",
-    )
-    puzzle49.equal_innocent_neighbors(
-        "Laura",
-        "Zach",
-        "Freya",
-    )
-    puzzle49.add_rule(
-        "Donna",
-        lambda hypothesis: count_innocent(puzzle49.get_neighbors("Vicky"), hypothesis)
-        % 2
-        == 1,
-    )
-    puzzle49.add_rule(
-        "Ruth",
-        lambda hypothesis: count_criminal(puzzle49.get_neighbors("Bruce"), hypothesis)
-        % 2
-        == 1,
-    )
-
-    puzzle49.add_rule(
-        "Janet1",
-        lambda hypothesis: count_criminal(
-            ["Hank", "Nicole", "Sarah", "Xia"], hypothesis
-        )
-        == 2,
-    )
-    puzzle49.criminals_connected("Janet2", ["Hank", "Nicole", "Sarah", "Xia"])
-    return puzzle49
 
 
 def main() -> None:
