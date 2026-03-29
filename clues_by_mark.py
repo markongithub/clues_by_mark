@@ -14,6 +14,77 @@ class FakeHypothesis:
         return CRIMINAL
 
 
+class Puzzle:
+    def __init__(self, suspects: list[str], known: dict[str, bool]) -> None:
+        self.suspects = suspects
+        self.known = known
+        self.neighbors_cache = {
+            suspect: neighbors(list(suspects), suspect) for suspect in suspects
+        }
+        self.rules = {}
+
+    def get_neighbors(self, suspect: str) -> list[str]:
+        return self.neighbors_cache[suspect]
+
+    def add_rule(self, rule_name: str, rule: Callable[[dict[str, bool]], bool]) -> None:
+        self.rules[rule_name] = rule
+
+    def solve(self) -> None:
+        fewer_suspects = set.union(
+            *[relevant_suspects(rule) for rule in self.rules.values()]
+        )
+        for suspect in fewer_suspects:
+            if suspect not in self.suspects:
+                print(f"I think you misspelled someone in here: {suspect}")
+                return
+        rule_matrix = {}
+        for rule_name, rule in self.rules.items():
+            rule_matrix[rule_name] = [
+                hypothesis
+                for hypothesis in all_hypotheses(self.known, fewer_suspects)
+                if rule(hypothesis)
+            ]
+        print("finished building rule matrix")
+        maximum_number_of_combinations = 2 ** (
+            len(fewer_suspects) - len(self.known.keys())
+        )
+        rules_to_remove = []
+        for k, v in rule_matrix.items():
+            # print(f"rule {k} has {len(v)}/{maximum_number_of_combinations} combinations")
+            if len(v) == maximum_number_of_combinations:
+                print(f"{k}'s rule is always true so we can ignore it.")
+                rules_to_remove.append(k)
+            if len(v) == 0:
+                print(f"{k}'s rule is always false so this puzzle is unsolvable.")
+                return
+        for rule_name in rules_to_remove:
+            del rule_matrix[rule_name]
+        # print(rule_matrix)
+        # rule_matrix is a dictionary of rule names to lists of hypotheses
+        # we want to find the commonalities of the hypotheses for each rule combination
+        for num_rules in range(1, len(rule_matrix) + 1):
+            print(f"checking combinations of {num_rules} rules")
+            for rule_combination in combinations(rule_matrix.keys(), num_rules):
+                # print(f"rule_combination: {rule_combination}")
+                set_of_frozensets_of_pairs = combine_rules_from_matrix(
+                    [rule_matrix[rule] for rule in rule_combination]
+                )
+                list_of_dictionaries = [dict(f) for f in set_of_frozensets_of_pairs]
+                # print(f"{rule_combination}: {sorted([sorted(d.items()) for d in list_of_dictionaries])}")
+                commonalities_without_knowns = {
+                    k: v
+                    for k, v in find_commonalities(list_of_dictionaries).items()
+                    if k not in self.known.keys()
+                }
+                if commonalities_without_knowns:
+                    print(
+                        f"{rule_combination} commonalities: {commonalities_without_knowns}"
+                    )
+        # for rule_name, lineups in rule_matrix.items():
+        #    commonalities_without_knowns = {k: v for k,v in find_commonalities(lineups).items() if k not in known.keys()}
+        #    print(f"{rule_name}: {commonalities_without_knowns}")
+
+
 def my_first_rule(hypothesis: dict[str, bool]) -> bool:
     return hypothesis.get("Alice") == CRIMINAL and hypothesis.get("Bob") == INNOCENT
 
@@ -169,114 +240,119 @@ def combine_rules_from_matrix(
     return set_of_dicts
 
 
-def main() -> None:
-    print("Away we go...")
-    suspects = [
-        "Alex",
-        "Chad",
+def make_puzzle50() -> Puzzle:
+    puzzle50 = Puzzle(
+        suspects=[
+            "Alex",
+            "Chad",
+            "Daniel",
+            "Eric",
+            "Freya",
+            "Gus",
+            "Hank",
+            "Isaac",
+            "Janet",
+            "Kay",
+            "Lucy",
+            "Mark",
+            "Nicole",
+            "Rose",
+            "Susan",
+            "Terry",
+            "Uma",
+            "Vera",
+            "Xia",
+            "Ziad",
+        ],
+        known={
+            "Lucy": INNOCENT,
+            "Daniel": CRIMINAL,
+            "Eric": CRIMINAL,
+            "Janet": CRIMINAL,
+            "Kay": CRIMINAL,
+            "Susan": CRIMINAL,
+            "Isaac": CRIMINAL,
+            "Hank": CRIMINAL,
+            # "Rose": CRIMINAL,
+            # "Freya": CRIMINAL,
+            # "Mark": CRIMINAL,
+            # "Chad": INNOCENT,
+            # "Terry": CRIMINAL,
+            # "Xia": CRIMINAL,
+            # "Nicole": INNOCENT,
+        },
+    )
+    # print(f"neighbors of Rose: {puzzle50.get_neighbors('Rose')}")
+    puzzle50.add_rule(
         "Daniel",
-        "Eric",
-        "Freya",
-        "Gus",
-        "Hank",
-        "Isaac",
-        "Janet",
-        "Kay",
-        "Lucy",
-        "Mark",
-        "Nicole",
-        "Rose",
-        "Susan",
-        "Terry",
-        "Uma",
-        "Vera",
-        "Xia",
-        "Ziad",
-    ]
-    known = {
-        "Lucy": INNOCENT,
-        "Daniel": CRIMINAL,
-        "Eric": CRIMINAL,
-        "Janet": CRIMINAL,
-        "Kay": CRIMINAL,
-        "Susan": CRIMINAL,
-        "Isaac": CRIMINAL,
-        "Hank": CRIMINAL,
-        # "Rose": CRIMINAL,
-        # "Freya": CRIMINAL,
-        # "Mark": CRIMINAL,
-        # "Chad": INNOCENT,
-        # "Terry": CRIMINAL,
-        # "Xia": CRIMINAL,
-        # "Nicole": INNOCENT,
-    }
-    neighbors_cache = {
-        suspect: neighbors(list(suspects), suspect) for suspect in suspects
-    }
-    # print(f"neighbors of Rose: {neighbors_cache['Rose']}")
-    rules = {
-        "Daniel": lambda hypothesis: count_innocent(neighbors_cache["Rose"], hypothesis)
+        lambda hypothesis: count_innocent(puzzle50.get_neighbors("Rose"), hypothesis)
         // 2
         == 1,
-        "Eric": one_innocent_left_of_mark,
-        "Janet": lambda hypothesis: count_innocent(neighbors_cache["Xia"], hypothesis)
-        == count_innocent(neighbors_cache["Chad"], hypothesis),
-        "Kay": four_innocents_on_edges,
-        "Susan": lambda hypothesis: count_criminal(neighbors_cache["Eric"], hypothesis)
-        == count_criminal(neighbors_cache["Freya"], hypothesis),
-        "Hank": only_one_row_has_exactly_two_innocents,
-        # "Freya": lambda hypothesis: count_criminal(neighbors(suspects, "Terry"), hypothesis) == count_criminal(neighbors(suspects, "Daniel"), hypothesis),
-        # "Rose": lambda hypothesis: count_criminal(neighbors(suspects, "Isaac"), hypothesis) == count_criminal(neighbors(suspects, "Xia"), hypothesis),
-        # "Mark": odd_criminals_column_a,
-        # "Terry": lambda hypothesis: count_criminal(neighbors(suspects, "Chad"), hypothesis) > count_criminal(neighbors(suspects, "Vera"), hypothesis),
-    }
+    )
+    puzzle50.add_rule("Eric", one_innocent_left_of_mark)
+    puzzle50.add_rule(
+        "Janet",
+        lambda hypothesis: count_innocent(puzzle50.get_neighbors("Xia"), hypothesis)
+        == count_innocent(puzzle50.get_neighbors("Chad"), hypothesis),
+    )
+    puzzle50.add_rule("Kay", four_innocents_on_edges)
+    puzzle50.add_rule(
+        "Susan",
+        lambda hypothesis: count_criminal(puzzle50.get_neighbors("Eric"), hypothesis)
+        == count_criminal(puzzle50.get_neighbors("Freya"), hypothesis),
+    )
+    puzzle50.add_rule("Hank", only_one_row_has_exactly_two_innocents)
+    return puzzle50
 
-    fewer_suspects = set.union(*[relevant_suspects(rule) for rule in rules.values()])
-    for suspect in fewer_suspects:
-        if suspect not in suspects:
-            print(f"I think you misspelled someone in here: {suspect}")
-            return
-    rule_matrix = {}
-    for rule_name, rule in rules.items():
-        rule_matrix[rule_name] = [
-            hypothesis
-            for hypothesis in all_hypotheses(known, fewer_suspects)
-            if rule(hypothesis)
-        ]
-    print("finished building rule matrix")
-    maximum_number_of_combinations = 2 ** (len(fewer_suspects) - len(known.keys()))
-    rules_to_remove = []
-    for k, v in rule_matrix.items():
-        # print(f"rule {k} has {len(v)}/{maximum_number_of_combinations} combinations")
-        if len(v) == maximum_number_of_combinations:
-            print(f"{k}'s rule is always true so we can ignore it.")
-            rules_to_remove.append(k)
-    for rule_name in rules_to_remove:
-        del rule_matrix[rule_name]
-    # print(rule_matrix)
-    # rule_matrix is a dictionary of rule names to lists of hypotheses
-    # we want to find the commonalities of the hypotheses for each rule combination
-    for num_rules in range(1, len(rule_matrix) + 1):
-        print(f"checking combinations of {num_rules} rules")
-        for rule_combination in combinations(rule_matrix.keys(), num_rules):
-            # print(f"rule_combination: {rule_combination}")
-            set_of_frozensets_of_pairs = combine_rules_from_matrix(
-                [rule_matrix[rule] for rule in rule_combination]
-            )
-            list_of_dictionaries = [dict(f) for f in set_of_frozensets_of_pairs]
-            # print(f"{rule_combination}: {sorted([sorted(d.items()) for d in list_of_dictionaries])}")
-            commonalities_without_knowns = {
-                k: v
-                for k, v in find_commonalities(list_of_dictionaries).items()
-                if k not in known.keys()
-            }
-            if commonalities_without_knowns:
-                print(
-                    f"{rule_combination} commonalities: {commonalities_without_knowns}"
-                )
-    # for rule_name, lineups in rule_matrix.items():
-    #    commonalities_without_knowns = {k: v for k,v in find_commonalities(lineups).items() if k not in known.keys()}
-    #    print(f"{rule_name}: {commonalities_without_knowns}")
+
+def make_puzzle49() -> Puzzle:
+    puzzle49 = Puzzle(
+        suspects=[
+            "Andre",
+            "Bruce",
+            "Chuck",
+            "Donna",
+            "Erwin",
+            "Freya",
+            "Hank",
+            "Isaac",
+            "Janet",
+            "Laura",
+            "Nicole",
+            "Oscar",
+            "Paul",
+            "Ruth",
+            "Sarah",
+            "Uma",
+            "Vicky",
+            "Will",
+            "Xia",
+            "Zach",
+        ],
+        known={
+            "Sarah": INNOCENT,
+        },
+    )
+    puzzle49.add_rule(
+        "Sarah1",
+        lambda hypothesis: count_innocent(puzzle49.get_neighbors("Andre"), hypothesis)
+        == 0,
+    )
+    puzzle49.add_rule(
+        "Sarah2",
+        lambda hypothesis: all(
+            [
+                count_innocent(puzzle49.get_neighbors(suspect), hypothesis) > 0
+                for suspect in puzzle49.suspects
+            ]
+        ),
+    )
+    return puzzle49
+
+
+def main() -> None:
+    print("Away we go...")
+    make_puzzle49().solve()
 
 
 if __name__ == "__main__":
