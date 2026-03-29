@@ -193,7 +193,6 @@ def main() -> None:
         "Xia",
         "Ziad",
     ]
-    print(f"neighbors of Rose: {neighbors(list(suspects), 'Rose')}")
     known = {
         "Lucy": INNOCENT,
         "Daniel": CRIMINAL,
@@ -211,23 +210,20 @@ def main() -> None:
         # "Xia": CRIMINAL,
         # "Nicole": INNOCENT,
     }
-
+    neighbors_cache = {
+        suspect: neighbors(list(suspects), suspect) for suspect in suspects
+    }
+    # print(f"neighbors of Rose: {neighbors_cache['Rose']}")
     rules = {
-        "Daniel": lambda hypothesis: count_innocent(
-            neighbors(suspects, "Rose"), hypothesis
-        )
+        "Daniel": lambda hypothesis: count_innocent(neighbors_cache["Rose"], hypothesis)
         // 2
         == 1,
         "Eric": one_innocent_left_of_mark,
-        "Janet": lambda hypothesis: count_innocent(
-            neighbors(suspects, "Xia"), hypothesis
-        )
-        == count_innocent(neighbors(suspects, "Chad"), hypothesis),
+        "Janet": lambda hypothesis: count_innocent(neighbors_cache["Xia"], hypothesis)
+        == count_innocent(neighbors_cache["Chad"], hypothesis),
         "Kay": four_innocents_on_edges,
-        "Susan": lambda hypothesis: count_criminal(
-            neighbors(suspects, "Eric"), hypothesis
-        )
-        == count_criminal(neighbors(suspects, "Freya"), hypothesis),
+        "Susan": lambda hypothesis: count_criminal(neighbors_cache["Eric"], hypothesis)
+        == count_criminal(neighbors_cache["Freya"], hypothesis),
         "Hank": only_one_row_has_exactly_two_innocents,
         # "Freya": lambda hypothesis: count_criminal(neighbors(suspects, "Terry"), hypothesis) == count_criminal(neighbors(suspects, "Daniel"), hypothesis),
         # "Rose": lambda hypothesis: count_criminal(neighbors(suspects, "Isaac"), hypothesis) == count_criminal(neighbors(suspects, "Xia"), hypothesis),
@@ -247,10 +243,21 @@ def main() -> None:
             for hypothesis in all_hypotheses(known, fewer_suspects)
             if rule(hypothesis)
         ]
+    print("finished building rule matrix")
+    maximum_number_of_combinations = 2 ** (len(fewer_suspects) - len(known.keys()))
+    rules_to_remove = []
+    for k, v in rule_matrix.items():
+        # print(f"rule {k} has {len(v)}/{maximum_number_of_combinations} combinations")
+        if len(v) == maximum_number_of_combinations:
+            print(f"{k}'s rule is always true so we can ignore it.")
+            rules_to_remove.append(k)
+    for rule_name in rules_to_remove:
+        del rule_matrix[rule_name]
     # print(rule_matrix)
     # rule_matrix is a dictionary of rule names to lists of hypotheses
     # we want to find the commonalities of the hypotheses for each rule combination
     for num_rules in range(1, len(rule_matrix) + 1):
+        print(f"checking combinations of {num_rules} rules")
         for rule_combination in combinations(rule_matrix.keys(), num_rules):
             # print(f"rule_combination: {rule_combination}")
             set_of_frozensets_of_pairs = combine_rules_from_matrix(
