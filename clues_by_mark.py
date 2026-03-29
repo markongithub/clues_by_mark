@@ -569,12 +569,12 @@ def make_puzzle48() -> Puzzle:
     )
     puzzle48.more_criminal_neighbors("Isaac", CRIMINAL, "Vince", "Flora")
 
-    # puzzle48.add_rule(
-    #     "Gabe",
-    #     INNOCENT,
-    #     lambda hypothesis: count_innocent(puzzle48.get_neighbors("Isaac"), hypothesis)
-    #     == 5,
-    # )
+    puzzle48.add_rule(
+        "Gabe",
+        INNOCENT,
+        lambda hypothesis: count_innocent(puzzle48.get_neighbors("Isaac"), hypothesis)
+        == 5,
+    )
 
     # def gabe2(hypothesis: dict[str, bool]) -> bool:
     #     # This is terrible. We'd like to terminate after finding a failure but that breaks how relevant_suspects works. So we need to reengineer relevant_suspects to make this more efficient.
