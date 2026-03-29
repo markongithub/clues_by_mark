@@ -331,6 +331,9 @@ def make_puzzle49() -> Puzzle:
         ],
         known={
             "Sarah": INNOCENT,
+            "Bruce": CRIMINAL,
+            "Erwin": CRIMINAL,
+            "Freya": CRIMINAL,
         },
     )
     puzzle49.add_rule(
@@ -338,14 +341,37 @@ def make_puzzle49() -> Puzzle:
         lambda hypothesis: count_innocent(puzzle49.get_neighbors("Andre"), hypothesis)
         == 0,
     )
+
+    def sarah2(hypothesis: dict[str, bool]) -> bool:
+        for suspect in puzzle49.suspects:
+            if suspect != "Andre":
+                if count_innocent(puzzle49.get_neighbors(suspect), hypothesis) == 0:
+                    return False
+        return True
+
     puzzle49.add_rule(
         "Sarah2",
-        lambda hypothesis: all(
-            [
-                count_innocent(puzzle49.get_neighbors(suspect), hypothesis) > 0
-                for suspect in puzzle49.suspects
-            ]
-        ),
+        sarah2,
+    )
+    puzzle49.add_rule(
+        "Bruce",
+        lambda hypothesis: (
+            count_innocent(puzzle49.get_neighbors("Sarah"), hypothesis) == 3
+        )
+        and (count_innocent(["Will", "Xia", "Zach"], hypothesis) == 1),
+    )
+    puzzle49.add_rule(
+        "Erwin",
+        lambda hypothesis: (
+            count_innocent(puzzle49.get_neighbors("Will"), hypothesis) == 3
+        )
+        and (count_innocent(["Sarah", "Xia"], hypothesis) == 2),
+    )
+    puzzle49.add_rule(
+        "Freya",
+        lambda hypothesis: count_criminal(puzzle49.get_neighbors("Isaac"), hypothesis)
+        // 2
+        == 1,
     )
     return puzzle49
 
