@@ -446,23 +446,29 @@ def make_puzzle49() -> Puzzle:
         % 2
         == 1,
     )
-    # puzzle49.add_rule(
-    #     "Ruth",
-    #     INNOCENT,
-    #     lambda hypothesis: count_criminal(puzzle49.get_neighbors("Bruce"), hypothesis)
-    #     % 2
-    #     == 1,
-    # )
+    puzzle49.known["Will"] = CRIMINAL
+    puzzle49.known["Zach"] = INNOCENT
+    puzzle49.known["Isaac"] = CRIMINAL
+    puzzle49.known["Uma"] = CRIMINAL
+    puzzle49.add_rule(
+        "Ruth",
+        INNOCENT,
+        lambda hypothesis: count_criminal(puzzle49.get_neighbors("Bruce"), hypothesis)
+        % 2
+        == 1,
+    )
+    puzzle49.known["Paul"] = CRIMINAL
+    puzzle49.known["Andre"] = INNOCENT
 
-    # puzzle49.add_rule(
-    #     "Janet",
-    #     CRIMINAL,
-    #     lambda hypothesis: count_criminal(
-    #         ["Hank", "Nicole", "Sarah", "Xia"], hypothesis
-    #     )
-    #     == 2,
-    # )
-    # puzzle49.criminals_connected("Janet2", None, ["Hank", "Nicole", "Sarah", "Xia"])
+    puzzle49.add_rule(
+        "Janet",
+        CRIMINAL,
+        lambda hypothesis: count_criminal(
+            ["Hank", "Nicole", "Sarah", "Xia"], hypothesis
+        )
+        == 2,
+    )
+    puzzle49.criminals_connected("Janet2", None, ["Hank", "Nicole", "Sarah", "Xia"])
     return puzzle49
 
 
