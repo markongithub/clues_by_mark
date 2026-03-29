@@ -336,8 +336,29 @@ def make_puzzle49() -> Puzzle:
             "Freya": CRIMINAL,
             "Xia": INNOCENT,
             "Vicky": CRIMINAL,
+            # "Andre": CRIMINAL,
+            # "Chuck": INNOCENT,
+            # "Janet": INNOCENT,
+            # "Isaac": INNOCENT,
         },
     )
+    puzzle49.bug_hypothesis = {
+        "Andre": INNOCENT,
+        "Chuck": CRIMINAL,
+        "Donna": CRIMINAL,
+        "Hank": CRIMINAL,
+        "Isaac": INNOCENT,
+        "Janet": INNOCENT,
+        "Laura": INNOCENT,
+        "Nicole": CRIMINAL,
+        "Oscar": CRIMINAL,
+        "Paul": INNOCENT,
+        "Ruth": CRIMINAL,
+        "Uma": INNOCENT,
+        "Will": CRIMINAL,
+        "Zach": CRIMINAL,
+    } | puzzle49.known
+    print(f"Chuck's neighbors: {puzzle49.get_neighbors('Chuck')}")
     puzzle49.add_rule(
         "Sarah1",
         lambda hypothesis: count_innocent(puzzle49.get_neighbors("Andre"), hypothesis)
@@ -345,11 +366,14 @@ def make_puzzle49() -> Puzzle:
     )
 
     def sarah2(hypothesis: dict[str, bool]) -> bool:
+        # This is terrible. We'd like to terminate after finding a failure but that breaks how relevant_suspects works. So we need to reengineer relevant_suspects to make this more efficient.
+        success = True
         for suspect in puzzle49.suspects:
             if suspect != "Andre":
                 if count_innocent(puzzle49.get_neighbors(suspect), hypothesis) == 0:
-                    return False
-        return True
+                    print(f"{suspect} has no innocent neighbors")
+                    success = False
+        return success
 
     puzzle49.add_rule(
         "Sarah2",
@@ -372,7 +396,7 @@ def make_puzzle49() -> Puzzle:
     puzzle49.add_rule(
         "Freya",
         lambda hypothesis: count_criminal(puzzle49.get_neighbors("Isaac"), hypothesis)
-        // 2
+        % 2
         == 1,
     )
     puzzle49.add_rule(
@@ -380,6 +404,14 @@ def make_puzzle49() -> Puzzle:
         lambda hypothesis: count_criminal(puzzle49.get_neighbors("Isaac"), hypothesis)
         > count_criminal(puzzle49.get_neighbors("Xia"), hypothesis),
     )
+    print(
+        f"under the bug hypothesis Isaac has {count_criminal(puzzle49.get_neighbors('Isaac'), puzzle49.bug_hypothesis)} criminal neighbors"
+    )
+    for name, rule in puzzle49.rules.items():
+        if rule(puzzle49.bug_hypothesis):
+            print(f"bug_hypothesis is valid for {name}")
+        else:
+            print(f"bug_hypothesis is not valid for {name}")
     return puzzle49
 
 
