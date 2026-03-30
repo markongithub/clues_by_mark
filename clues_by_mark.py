@@ -576,20 +576,41 @@ def make_puzzle48() -> Puzzle:
         == 5,
     )
 
-    # def gabe2(hypothesis: dict[str, bool]) -> bool:
-    #     # This is terrible. We'd like to terminate after finding a failure but that breaks how relevant_suspects works. So we need to reengineer relevant_suspects to make this more efficient.
-    #     success = True
-    #     for suspect in puzzle48.suspects:
-    #         if suspect != "Luigi":
-    #             if count_innocent(puzzle48.get_neighbors(suspect), hypothesis) == 5:
-    #                 success = False
-    #     return success
+    def gabe2(hypothesis: dict[str, bool]) -> bool:
+        # This is terrible. We'd like to terminate after finding a failure but that breaks how relevant_suspects works. So we need to reengineer relevant_suspects to make this more efficient.
+        success = True
+        for suspect in puzzle48.suspects:
+            if suspect != "Isaac":
+                if count_innocent(puzzle48.get_neighbors(suspect), hypothesis) == 5:
+                    success = False
+        return success
 
-    # puzzle48.add_rule(
-    #     "Gabe2",
-    #     None,
-    #     gabe2,
-    # )
+    puzzle48.add_rule(
+        "Gabe2",
+        None,
+        gabe2,
+    )
+
+    puzzle48.known["Amy"] = CRIMINAL
+    puzzle48.known["Ollie"] = INNOCENT
+    puzzle48.known["Stella"] = CRIMINAL
+    puzzle48.known["Wanda"] = CRIMINAL
+
+    puzzle48.more_criminal_neighbors("Xavi", CRIMINAL, "Flora", "Amy")
+
+    puzzle48.known["Ziad"] = CRIMINAL
+
+    puzzle48.add_rule(
+        "Ryan",
+        CRIMINAL,
+        lambda hypothesis: count_innocent(puzzle48.get_neighbors("Chris"), hypothesis)
+        % 2
+        == 1,
+    )
+
+    puzzle48.known["Mary"] = INNOCENT
+    puzzle48.known["Betty"] = INNOCENT
+    puzzle48.known["Karen"] = INNOCENT
 
     return puzzle48
 
